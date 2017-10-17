@@ -185,6 +185,9 @@ void setup()
         //Vibrator SETUP
         pinMode(vibPin, OUTPUT);
 
+        //handle random reaction
+         randomSeed(analogRead(5));
+
 }
 
 #define BAR_LENGTH                     58 /* <-- Change this to print longer or
@@ -215,6 +218,19 @@ void loop(void)
                 digitalWrite(LEDPinR,HIGH);
                 digitalWrite(LEDPinL,HIGH);
                 blinkLEDEyes(10,3);
+                if (stressCount >= 5)
+                  block(1000*stressCount);
+                else if(stressCount >=7)
+                {
+                  digitalWrite(vibPin, HIGH);
+                  delay(1000*stressCount);
+                  digitalWrite(vibPin,LOW);
+                }
+                else if (stressCount >= 9)
+                  stressCount = 0;
+                else 
+                  stressCount++;
+                  
                //Hard Squeeze
         }
         if (valueFSRRead > 10 && valueFSRRead < 110)
@@ -243,43 +259,205 @@ void loop(void)
 
         //Capacitor Sensors
         int k;
-        int n = 2; /* <-- Change this number to view a different sensor */
+        int n = 0; /* <-- Change this number to view a different sensor */
         //0,1,2
 
         //Always call to get information
         tlSensors.sample(); /* <-- Take a series of new samples for all sensors*/
+        checkCapacitiveTouchSensor(0);
+        checkCapacitiveTouchSensor(1);
+        checkCapacitiveTouchSensor(2);
 
-        /*
-         * 
-         * Reference 
-         * 
-           buttonStateReleased = 3,
-           buttonStateReleasedToApproached = 4,
-           buttonStateApproached = 5,
-           buttonStateApproachedToPressed = 6,
-           buttonStateApproachedToReleased = 7,
-           buttonStatePressed = 8,
-           buttonStatePressedToApproached = 9,
-         */
-        //Check Capcitive Sensor 0//Top of head
-        if (tlSensors.getState(8));
-        {
-
-          
-        }
         
-          
-          
-          tlSensors.printBar(n, BAR_LENGTH); /* <-- Print the visualization */
-          float val = tlSensors.getValue(n);
-          Serial.println(val);
-          print_sensor_state(n); /* <-- Print summary of sensor n */
+        tlSensors.printBar(n, BAR_LENGTH); /* <-- Print the visualization */
+        float val = tlSensors.getValue(n);
+        Serial.println(val);
+        print_sensor_state(n); /* <-- Print summary of sensor n */
           
  
         Serial.println("");
         delay(50);
 
 }
+
+int oldStateSensor0 = 0;
+int sensor0TraceCount = 0;
+int sensor0PressCount = 0;
+int sensor0ReleaseCount = 0;
+
+
+int oldStateSensor1 = 0;
+int sensor1TraceCount = 0;
+int sensor1PressCount = 0;
+int sensor1ReleaseCount = 0;
+
+
+int oldStateSensor2 = 0;
+int sensor2TraceCount = 0;
+int sensor2PressCount = 0;
+int sensor2ReleaseCount = 0;
+
+void checkCapacitiveTouchSensor(int n)
+{         
+        //Check Capcitive Sensor 0//Top of head
+        int sensor0State = tlSensors.getState(0);
+        int sensor1State = tlSensors.getState(1);
+        int sensor2State = tlSensors.getState(2);
+        
+        Serial.println(tlSensors.getStateLabel(n))  ;
+        
+        //Head
+        if (tlSensors.checkForMajorChange(oldStateSensor0,sensor0State))
+        {
+            if (sensor0State == 3)
+            {
+                if (sensor0ReleaseCount >= 10)
+                {
+                
+                    sensor0ReleaseCount = 0;
+                    sensor0TraceCount = 0; 
+                    sensor0PressCount = 0;
+                }
+                else 
+                {
+                  sensor0ReleaseCount++;
+                }
+            }
+            else if (sensor0State == 4 ||sensor0State == 5|| sensor0State == 7 || sensor0State == 9 )
+            {
+                if (sensor0TraceCount >= 5)
+                {
+                    //Count 5 
+                    long reaction = random(3);
+                   
+                    if (reaction == 0)
+                    {
+                      nod();
+                    }
+                    else if (reaction == 1)
+                    {
+                      dance();
+                    }
+                    else if (reaction == 2)
+                    {
+                      nod();
+                    }
+                 }
+                else
+                {
+                  sensor0TraceCount++;
+                }
+            }
+            
+            else if (sensor0State == 6 || sensor0State == 8)
+            {
+                  if(sensor0PressCount >= 2)
+                  {
+                      nod();
+                      nod();
+                      nod();
+                  }
+                  else
+                  {
+                    sensor0PressCount++;
+                  }
+            }
+            
+            
+            oldStateSensor0 = tlSensors.getState(0);
+        }
+
+
+        //Bottom
+         if (tlSensors.checkForMajorChange(oldStateSensor1,sensor1State))
+        {
+            if (sensor1State == 8 || sensor1State == 9 )
+            {
+                Serial.println("sensor1");
+                nod();
+            }
+            
+            else if (sensor1State == 6 || sensor1State == 8)
+            {
+                tail();
+            }
+            oldStateSensor1 =sensor1State;
+        }
+
+        //Tail
+         if (tlSensors.checkForMajorChange(oldStateSensor2,sensor2State))
+        {
+            if ( sensor2State == 7 || sensor2State == 9 )
+            {
+              
+                digitalWrite(LEDPinE,HIGH);
+                tail();
+            }
+            
+            else if (sensor2State == 6 || sensor2State == 8)
+            {
+                digitalWrite(LEDPinE,HIGH);
+                tail();
+                tail();
+                tail();
+                
+            }
+            else
+            {
+                digitalWrite(LEDPinE,LOW);
+            }
+            oldStateSensor2 =sensor2State;
+        }
+}
+
+
+void nod()
+{
+    changePosition (servo0, 25); 
+    delay(100);
+    changePosition(servo0, 0);
+    Serial.println("noddding");
+}
+
+void tail()
+{
+    changePosition (servo2, 65); 
+    delay(500);
+    changePosition(servo2, 0);
+    Serial.println("tailing");
+}
+
+void dance()
+{
+  tail();
+  nod();
+  nod();
+  tail();
+}
+void alert()
+{
+  nod();
+  nod();
+  nod();
+  nod();
+}
+
+void block(int ms)
+{
+        int pos = 0;
+        for (pos = 0; pos <= 65; pos += 1) { // goes from 0 degrees to 180 degrees
+          // in steps of 1 degree
+          servo1.write(pos);
+          delay(15);                       // waits 15ms for the servo to reach the position
+        }
+        delay(ms);
+        for (pos = 65; 65 >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+          servo1.write(pos);
+          delay(15);                       // waits 15ms for the servo to reach the position
+        }
+
+}
+
 
 void blinkLEDEyes(int ms, int num_times)
 {
