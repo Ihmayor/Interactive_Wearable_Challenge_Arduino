@@ -4,6 +4,8 @@ Design Prompt: Construct an INTERACTIVE WEARABLE ACCESSORY
 
 Challenges: First Encounter with Arduino and ad-hoc sensors
 
+[More Details] (http://irenehmayor.me/project1.html)
+
 
 
 # External Credits of Code Used
